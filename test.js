@@ -34,14 +34,14 @@ Zet.declare("User", {
 	superclass : namespace.another.superClass,
 	defineBody : function(that){
 		Zet.public({
-			construct : function(){
-				Zet.log('User.construct');	
+			construct : function(firstName, lastName){
+				Zet.log('User.construct', firstName, lastName);	
 				that.inherited(arguments)
 			},
 
 			publicFunction : function(){
 				Zet.log('User.publicFunction');	
-				that.inherited(arguments);
+				return that.inherited(arguments);
 			}
 		});
 	}
