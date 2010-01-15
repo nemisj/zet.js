@@ -145,7 +145,7 @@
 	_c.log = function(){
 		if(globalscope.console && console.log){
 			console.log.apply(console, arguments);
-		}else{
+		}else if(window && window.document){
 			//XXX: change it to logger providerrrr	
 			var div= document.createElement("div");
 			document.body.appendChild(div);
