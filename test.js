@@ -6,11 +6,11 @@ Zet.declare('namespace.another.superClass',
 		var lastName = '';
 		
         var privateFunction = function(){
-			console.debug(that, 'privateFunction');
+			Zet.log('superClass.privateFunction');
 		}
 
 		that.publicOwnFunction = function(){
-			console.debug(that,'publicOwnFunction');	
+			Zet.log('superClass.publicOwnFunction');	
 		}
 
 		Zet.public({
@@ -20,7 +20,7 @@ Zet.declare('namespace.another.superClass',
 			},
 
 			publicFunction : function(){
-				console.debug(that,'publicFunction');
+				Zet.log('superClass.publicFunction');
 			},
 
 			toString : function(){
@@ -35,12 +35,12 @@ Zet.declare("User", {
 	defineBody : function(that){
 		Zet.public({
 			construct : function(){
-				console.debug('Constructing2', that);	
+				Zet.log('User.construct');	
 				that.inherited(arguments)
 			},
 
 			publicFunction : function(){
-				console.debug(that,'publicFunction2');
+				Zet.log('User.publicFunction');	
 				that.inherited(arguments);
 			}
 		});
@@ -52,12 +52,12 @@ Zet.declare("Student", {
 	defineBody : function(that){
 		Zet.public({
 			construct : function(){
-				console.debug('Constructing3', that);	
+				Zet.log('Student.construct');	
 				that.inherited(arguments)
 			},
 
 			publicFunction : function(){
-				console.debug(that,'publicFunction3');
+				Zet.log('Student.publicFunction');
 				that.inherited(arguments);
 			}
 		});

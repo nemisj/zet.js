@@ -1,9 +1,3 @@
-function debug(str){
-   var div= document.createElement("div");
-   document.body.appendChild(div);
-   div.innerHTML = str;
-}
-
 (function(){
 	var _c = window.Zet = {};
 	var undef;
@@ -63,8 +57,8 @@ function debug(str){
 					}
 				},
 
-				instanceof : function(clazz){
-					return create.instanceof(clazz);
+				instanceOf : function(clazz){
+					return create.instanceOf(clazz);
 				},
 
 				public : _c.public
@@ -125,11 +119,11 @@ function debug(str){
 
 		curr[split[split.length-1]] = create;
 
-		create.instanceof = function(clazz){
+		create.instanceOf = function(clazz){
 			if(clazz == create){
 				return true;
 			}else if(superclass){
-				return superclass.instanceof(clazz);
+				return superclass.instanceOf(clazz);
 			}
 
 			return false;
@@ -142,70 +136,24 @@ function debug(str){
 		error.__publicbody = true;
 		throw error;
 	}
+
+	//
+	// Logging facilities
+	//
+	
+	_c.log = function(){
+		if(window.console && console.log){
+			console.log.apply(console, arguments);
+		}else{
+			//XXX: change it to logger providerrrr	
+			var div= document.createElement("div");
+			document.body.appendChild(div);
+			var str = '';
+			for(var i=0;i< arguments.length;i++){
+				str += (arguments[i] + ' ');	
+			}
+			div.innerHTML = str;
+		}
+	}
 })();
 
-Zet.declare('namespace.another.superClass', 
-{
-	defineBody : function(that){
-
-		var name     = 'tab_' + new Date().getTime();
-		var lastName = '';
-		
-        var privateFunction = function(){
-			console.debug(that, 'privateFunction');
-		}
-
-		that.publicOwnFunction = function(){
-			console.debug(that,'publicOwnFunction');	
-		}
-
-		Zet.public({
-			construct : function(){
-				privateFunction();
-				that.publicOwnFunction();
-			},
-
-			publicFunction : function(){
-				console.debug(that,'publicFunction');
-			},
-
-			toString : function(){
-				return name;
-			}
-		});
-	}
-});
-
-Zet.declare("User", {
-	superclass : namespace.another.superClass,
-	defineBody : function(that){
-		Zet.public({
-			construct : function(){
-				console.debug('Constructing2', that);	
-				that.inherited(arguments)
-			},
-
-			publicFunction : function(){
-				console.debug(that,'publicFunction2');
-				that.inherited(arguments);
-			}
-		});
-	}
-});
-
-Zet.declare("Student", {
-	superclass : User,
-	defineBody : function(that){
-		Zet.public({
-			construct : function(){
-				console.debug('Constructing3', that);	
-				that.inherited(arguments)
-			},
-
-			publicFunction : function(){
-				console.debug(that,'publicFunction3');
-				that.inherited(arguments);
-			}
-		});
-	}
-});
