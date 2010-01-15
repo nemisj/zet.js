@@ -1,5 +1,6 @@
 (function(){
-	var _c = window.Zet = {};
+  var globalscope = GLOBAL || window;
+	var _c = globalscope.Zet = {};
 	var undef;
 
 	function prepareArgs(args){
@@ -36,7 +37,7 @@
 			if(superclass && typeof superclass == "function"){
 				superStore = {};
 
-				var superi = superclass.call(window, superclass);
+				var superi = superclass.call(globalscope, superclass);
 				if(superi == null){
 					//throw or warning
 					throw new Error('Superclass of ' + className + ' is not a constructor ');  
@@ -111,7 +112,7 @@
 		}
 
 		var split = className.split(".");
-		var curr  = window;
+		var curr  = globalscope;
 
 		for(var i=0;i<split.length-1;i++){
 			curr = curr[split[i]] ? curr[split[i]] : (curr[split[i]] = {});
@@ -142,7 +143,7 @@
 	//
 	
 	_c.log = function(){
-		if(window.console && console.log){
+		if(globalscope.console && console.log){
 			console.log.apply(console, arguments);
 		}else{
 			//XXX: change it to logger providerrrr	
