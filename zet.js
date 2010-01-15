@@ -1,5 +1,5 @@
 (function(){
-  var globalscope = GLOBAL || window;
+  var globalscope = (typeof(GLOBAL) == "undefined") ? window : GLOBAL;
 	var _c = globalscope.Zet = {};
 	var undef;
 
