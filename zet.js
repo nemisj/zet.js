@@ -21,53 +21,67 @@
 				}
 			}
 		}
+
+        return obj;
 	}
+
+    function inherited(args){
+        var currentFnc   = arguments.callee.caller;
+        var inheritedFnc = currentFnc.__chain;
+
+        if(inheritedFnc && (typeof(inheritedFnc) == "function")){
+            var a = prepareArgs(args);
+            return inheritedFnc.apply(globalscope, a);
+        }
+    }
 
 	_c.declare = function(className, kwArgs) {
 
 		var superclass = kwArgs.superclass;
 		var defineBody = kwArgs.defineBody;
 
+        if(superclass && typeof(superclass) != "function"){
+            throw new Error("Zet.declare : Superclass of " + className + " is not a constructor.");
+        }else if(defineBody === undef || (typeof(defineBody) != "function")){
+            throw new Error("Zet.declare : defineBody of " + className + " is not a function.");
+        }
+
+        var instanceOf = function(clazz){
+			if(clazz == create){
+				return true;
+			}else if(superclass){ 
+                //one level deep
+				return superclass.instanceOf ? superclass.instanceOf(clazz) : superclass == clazz;
+			}
+
+			return false;
+        }
+
 		var create = function create(){
 			var params = prepareArgs(arguments);
 
-			var superStore = null;
-			var obj        = null;        
+			var superStore  = null;
+			var that        = null;        
 
-			if(superclass && typeof superclass == "function"){
-				superStore = {};
-
-				var superi = superclass.call(globalscope, superclass);
+			if(superclass){
+                // protection agains outside calls
+				var superi = superclass(create);
 				if(superi == null){
 					//throw or warning
-					throw new Error('Superclass of ' + className + ' is not a constructor ');  
+                    throw new Error("Zet.declare : Superclass of " + className + " should return object.");
 				}
-				// mixin all functions into superStore, for caching purpose
-				// in case child has them aswel
-				mixin(superStore, superi);
-				obj = superi;
+
+				// mixin all functions into superStore, for inheritance
+				superStore = mixin({}, superi);
+				that = superi;
 			}
 
-			obj  = obj || {}; // testing if the object already exists;
-
-			mixin(obj, {
-				inherited : function(fncName, args) {
-					var currentFnc = arguments.callee.caller;
-					if(currentFnc.__chain){
-						return currentFnc.__chain.apply(obj,prepareArgs(args));
-					}
-				},
-
-				instanceOf : function(clazz){
-					return create.instanceOf(clazz);
-				},
-
-				public : _c.public
-			});
+			that  = that || {}; // testing if the object already exists;
 
 			var proto = null;
+
 			try{
-				proto = defineBody.apply(obj, [ obj ]);
+				proto = defineBody(that);
 			}catch(e){
 				if(e.__publicbody){
 					proto = e.__seeding;
@@ -78,38 +92,46 @@
 
 			if(proto){
 				//some extra arguments are here
-				mixin(obj, proto);
+				mixin(that, proto);
 			}
 
+            // doing inheritance stuff
+            if(superStore){
+                for(var i in superStore){
+                    if(typeof(superStore[i]) == "function" && typeof(that[i]) == "function"){
+                        //name collisions, apply __chain trick
+                        that[i].__chain = superStore[i];
+                    }
+                }
+            }   
 
-			// doing inheritence stuff
-			if(superStore){
-				for(var i in superStore){
-					if(typeof(superStore[i]) == "function" && typeof(obj[i]) == "function"){
-						//name collision	
-						var fnc = obj[i];
-						fnc.__chain = superStore[i];
-					}
-				}
-			}
+            // adding helper functions
+			mixin(that, {
+                className   : className,
+				inherited   : inherited,
+				instanceOf  : instanceOf,
+				public      : _c.public,
+                constructor : create // for var that = bla.constructor();
+			});
 
-			// helping to be able to do
-			// var obj = bla.constructor();
-			obj.constructor = create;
+            var childscope  = arguments.callee.caller;
+            var passedscope = arguments[0];
 
-			// time to execute construct
-			if(arguments[0] == create){
-				// console.warn(className + ':We are called from some child.');
+            // checking for execution scope
+			if(childscope == passedscope){
+				// Constructor called within child constructor
 			} else {
-				// console.warn(className + ':We are called standalone.');
-				var construct = obj.construct;
+                // Constructor called outside the body
+				var construct = that.construct;
 				if(construct && typeof(construct) == "function"){
-					construct.apply(obj, params);	
+					construct.apply(globalscope, params);	
 				}
 			}
 
-			return obj;
-		}
+			return that;
+		};
+
+		create.instanceOf = instanceOf;
 
 		var split = className.split(".");
 		var curr  = globalscope;
@@ -118,17 +140,7 @@
 			curr = curr[split[i]] ? curr[split[i]] : (curr[split[i]] = {});
 		}
 
-		curr[split[split.length-1]] = create;
-
-		create.instanceOf = function(clazz){
-			if(clazz == create){
-				return true;
-			}else if(superclass){
-				return superclass.instanceOf(clazz);
-			}
-
-			return false;
-		}
+		return (curr[split[split.length-1]] = create);
 	}
 
 	_c.public = function(body){
@@ -140,13 +152,13 @@
 
 	//
 	// Logging facilities
+    // XXX: change it to logger providerrrr	
 	//
 	
 	_c.log = function(){
 		if(globalscope.console && console.log){
 			console.log.apply(console, arguments);
 		}else if(window && window.document){
-			//XXX: change it to logger providerrrr	
 			var div= document.createElement("div");
 			document.body.appendChild(div);
 			var str = '';
@@ -156,5 +168,21 @@
 			div.innerHTML = str;
 		}
 	}
+
+    _c.error = function(){
+		if(globalscope.console && console.error){
+			console.error.apply(console, arguments);
+		}else if(window && window.document){
+			var div= document.createElement("div");
+			document.body.appendChild(div);
+			var str = '';
+			for(var i=0;i< arguments.length;i++){
+				str += (arguments[i] + ' ');	
+			}
+			div.innerHTML = str;
+            div.style.color = 'red';
+		}
+    }
+
 })();
 
