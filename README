@@ -4,6 +4,8 @@ Yet, it has more than that. Zet.js provides you with unified declaration format,
 
 # Class declaration examples
 
+Declaring class with basic syntax :
+
     Zet.declare('SomeClass' , {
     	defineBody : function(that){
     		Zet.public({
@@ -13,6 +15,8 @@ Yet, it has more than that. Zet.js provides you with unified declaration format,
     		});
     	}
     });
+
+Class declaraion function do some stuff, bla bla bla
 
 
 # Support for CommonJS Modules 1.0 API ( tested in nodejs )
