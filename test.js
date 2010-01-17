@@ -1,4 +1,17 @@
-Zet.declare('Person', {
+var scope;
+if(typeof(exports) != "undefined"){
+    scope = exports;
+    var Zet    = require("./zet");
+    var logger = require('./zetlog4node');
+    Zet.profile({ 
+        scope  : scope, //needed for getClass
+        logger : logger 
+    });
+}else{
+    scope = window;
+}   
+
+scope.Person = Zet.declare({
 	defineBody : function(that){
 		that._counter   = 'zet_' + new Date().getTime();
 
@@ -15,6 +28,7 @@ Zet.declare('Person', {
             },
 
             setName : function(n){
+                Zet.log('Person.setName',n);
                 name = n;
             },
 
@@ -25,8 +39,8 @@ Zet.declare('Person', {
 	}
 });
 
-Zet.declare("User", {
-	superclass : Person,
+scope.User = Zet.declare( null , {
+	superclass : Zet.getClass('Person'),
 	defineBody : function(that){
 
         var nickname = '';
@@ -61,8 +75,8 @@ Zet.declare("User", {
 	}
 });
 
-function testUser(){
-    var u = User('Maks'); //testing constructor inheritance facility
+Zet.setClass('testUser',function(){
+    var u = Zet.getClass('User')('Maks'); //testing constructor inheritance facility
     var name = u.getName();
     if(name != 'Maks'){
         Zet.log('User.test : Name is incorrect');
@@ -80,42 +94,53 @@ function testUser(){
     if(nickname != 'SomeNickName'){
         Zet.log('User.test :  Nickname is ' + nickname + ' but not SomeNickName');
     }
-}
+});
 
-Zet.declare("module.Programmer", {
-	superclass : User,
+Zet.declare( 'module.Programmer' , {
+	superclass : Zet.getClass('User'),
 	defineBody : function(that){
 		Zet.public({
 			construct : function(name, nickname){
 				Zet.log('Programmer.construct');	
 				that.inherited(arguments);
                 that.setNickName(nickname);
-			}
+			},
+
+            setName : function(name){
+                that.inherited([name + '-']);
+            },
 		});
 	}
 });
 
-function testProgrammer(){
+Zet.setClass('testProgrammer', function(){
     //testing namespace and scope
-    if(!module){
+    if(!Zet.getClass('module.Programmer')){
         Zet.error('Programmer.test :  Scope module does not exist');
         return;
     }
 
-    if(!module.Programmer){
-        Zet.error('Programmer.test :  Class module.Programmer does not exist');
-        return;
+    if(typeof(exports) != "undefined"){
+        if(!exports.module.Programmer){
+            Zet.error('Programmer.test :  Class module.Programmer does not exist');
+            return;
+        }
+    }else{
+        if(!module.Programmer){
+            Zet.error('Programmer.test :  Class module.Programmer does not exist');
+            return;
+        }
     }
 
 
-    var p = module.Programmer('Maqz');
+    var p = Zet.getClass('module.Programmer')('Maqz');
 
     // testing instanceOf
-    if(!(p.instanceOf(User))){
+    if(!(p.instanceOf(Zet.getClass('User')))){
         Zet.error('Programmer.test :  Instance of is broken');
     } 
 
-    if(!(p.instanceOf(Person))){
+    if(!(p.instanceOf(Zet.getClass('Person')))){
         Zet.error('Programmer.test :  Instance of is broken for Person');
     } 
 
@@ -125,10 +150,12 @@ function testProgrammer(){
         Zet.error('Programmer.test :  Name is wrong ');
     }
 
-    Zet.log('Programmer.test :  Name is  ' + name);
+    p.setName('Hello');
+
+    Zet.error('Programmer.test :  Name is  ' + p.getName());
 
     if(p._counter != p.toString()){
-        console.debug('Shit');
+        Zet.log('Shit.test');
     }
-}
+});
 

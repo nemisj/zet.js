@@ -1,7 +1,31 @@
 (function(){
-  var globalscope = (typeof(GLOBAL) == "undefined") ? window : GLOBAL;
-	var _c = globalscope.Zet = {};
-	var undef;
+
+    //
+    // GLOBAL is the reference in nodejs implementation to the global scope
+    // node.js supports Modules specs, so, Zet will go into separate scope
+    //
+    
+    var globalscope = (typeof(GLOBAL) == "undefined") ? window : GLOBAL;
+
+    //
+    // Scope which is the entry point for Classes declaration;
+    //
+
+    var declarescope = globalscope; 
+
+    //
+    // support for CommonJS Modules 1.0 API
+    // Zet.js can be include as CommonJS module, by calling
+    // var Zet = require('zet.js');
+    //
+
+	var _c = (typeof(exports) != "undefined") ? exports : (globalscope.Zet = {});
+
+    // cache for undefined
+    var undef;
+
+    //logger provider
+    var logger;
 
 	function prepareArgs(args){
 		var result = [];
@@ -37,12 +61,18 @@
 
 	_c.declare = function(className, kwArgs) {
 
+        // className ommited for anonymous declaration
+        if(arguments.length == 1){
+            kwArgs    = className;
+            className = null;
+        }
+
 		var superclass = kwArgs.superclass;
 		var defineBody = kwArgs.defineBody;
 
         if(superclass && typeof(superclass) != "function"){
             throw new Error("Zet.declare : Superclass of " + className + " is not a constructor.");
-        }else if(defineBody === undef || (typeof(defineBody) != "function")){
+        }else if(defineBody !== undef && (typeof(defineBody) != "function")){
             throw new Error("Zet.declare : defineBody of " + className + " is not a function.");
         }
 
@@ -78,27 +108,28 @@
 
 			that  = that || {}; // testing if the object already exists;
 
-			var proto = null;
+            if(defineBody){
+                var proto = null;
+                try{
+                    proto = defineBody(that);
+                }catch(e){
+                    if(e.__publicbody){
+                        proto = e.__seeding;
+                    }else{
+                        throw e;	
+                    }
+                }
 
-			try{
-				proto = defineBody(that);
-			}catch(e){
-				if(e.__publicbody){
-					proto = e.__seeding;
-				}else{
-					throw e;	
-				}
-			}
-
-			if(proto){
-				//some extra arguments are here
-				mixin(that, proto);
-			}
+                if(proto){
+                    //some extra arguments are here
+                    mixin(that, proto);
+                }
+            }
 
             // doing inheritance stuff
             if(superStore){
                 for(var i in superStore){
-                    if(typeof(superStore[i]) == "function" && typeof(that[i]) == "function"){
+                    if((that[i] != superStore[i]) && (typeof(superStore[i]) == "function" && typeof(that[i]) == "function")){
                         //name collisions, apply __chain trick
                         that[i].__chain = superStore[i];
                     }
@@ -133,14 +164,8 @@
 
 		create.instanceOf = instanceOf;
 
-		var split = className.split(".");
-		var curr  = globalscope;
-
-		for(var i=0;i<split.length-1;i++){
-			curr = curr[split[i]] ? curr[split[i]] : (curr[split[i]] = {});
-		}
-
-		return (curr[split[split.length-1]] = create);
+        // in case for anonymous Classes declaration check for className
+        return className ? _c.setClass(className, create) : create;
 	}
 
 	_c.public = function(body){
@@ -150,38 +175,94 @@
 		throw error;
 	}
 
+    _c.profile = function(kwArgs){
+        if(kwArgs.scope){
+            declarescope = kwArgs.scope; 
+        }
+
+        if(kwArgs.logger){
+           logger = kwArgs.logger; 
+        }
+    }
+
+    _c.getClass = function(className){
+		var curr  = declarescope;
+
+		var split = className.split(".");
+		for(var i=0; i < split.length; i++){
+            if(curr[split[i]]){
+                curr =  curr[split[i]];
+            } else {
+                throw new Error("Zet.getClass: Can't find class: " + className);
+            }
+		}
+
+        return curr;
+    }
+
+    _c.setClass = function(className, constructor){
+		var curr  = declarescope;
+
+		var split = className.split(".");
+		for(var i=0;i<split.length-1;i++){
+			curr = curr[split[i]] ? curr[split[i]] : (curr[split[i]] = {});
+		}
+
+		return (curr[split[split.length-1]] = constructor);
+    }
+
 	//
 	// Logging facilities
-    // XXX: change it to logger providerrrr	
 	//
 	
+    // default logger
+    logger = {
+        log : function(){
+            if(globalscope.console && console.log){
+                console.log.apply(console, arguments);
+            }else if(window && window.document){
+                var div= document.createElement("div");
+                document.body.appendChild(div);
+                var str = '';
+                for(var i=0;i< arguments.length;i++){
+                    str += (arguments[i] + ' ');	
+                }
+                div.innerHTML = str;
+            }
+        },
+
+        error : function(){
+            if(globalscope.console && console.error){
+                console.error.apply(console, arguments);
+            }else if(window && window.document){
+                var div= document.createElement("div");
+                document.body.appendChild(div);
+                var str = '';
+                for(var i=0;i< arguments.length;i++){
+                    str += (arguments[i] + ' ');	
+                }
+                div.innerHTML = str;
+                div.style.color = 'red';
+            }
+        }  
+    }
+	
+    _c.level = function(lvl){
+        if(logger && logger.level){
+            logger.level(lvl);
+        }
+    }
+
 	_c.log = function(){
-		if(globalscope.console && console.log){
-			console.log.apply(console, arguments);
-		}else if(window && window.document){
-			var div= document.createElement("div");
-			document.body.appendChild(div);
-			var str = '';
-			for(var i=0;i< arguments.length;i++){
-				str += (arguments[i] + ' ');	
-			}
-			div.innerHTML = str;
-		}
+        if(logger && logger.log){
+            logger.log.apply(logger,arguments);
+        }
 	}
 
     _c.error = function(){
-		if(globalscope.console && console.error){
-			console.error.apply(console, arguments);
-		}else if(window && window.document){
-			var div= document.createElement("div");
-			document.body.appendChild(div);
-			var str = '';
-			for(var i=0;i< arguments.length;i++){
-				str += (arguments[i] + ' ');	
-			}
-			div.innerHTML = str;
-            div.style.color = 'red';
-		}
+        if(logger && logger.error){
+            logger.error.apply(logger,arguments);
+        }
     }
 
 })();
