@@ -5,20 +5,20 @@ Yet, it has more than that. Zet.js provides you with unified declaration format,
 # Class declaration examples
 
     Zet.declare('SomeClass' , {
-		superclass : 'someSuperClass',
-    	defineBody : function(that){
-    		Zet.public({
-    			construct : function(name, nickname){
-    				Zet.log('SomeClass.construct');	
-					that.inherited(arguments);
-    			},
+        superclass : 'someSuperClass',
+        defineBody : function(that){
+            Zet.public({
+                construct : function(name, nickname){
+                    Zet.log('SomeClass.construct');    
+                    that.inherited(arguments);
+                },
 
-				someMethod : function(){
-					Zet.log('SomeClass.someMethod');
-					that._someFlag = true;
-				}
-    		});
-    	}
+                someMethod : function(){
+                    Zet.log('SomeClass.someMethod');
+                    that._someFlag = true;
+                }
+            });
+        }
     });
 
 
@@ -46,13 +46,13 @@ To help fixing this, Zet provides getClass facility. This means, classes can be 
 Problem:
 
     Zet.declare('SomeClass' , {
-		superclass : SomeSuperClass // <- points to the constructor in global scope, it should be inside the exports
+        superclass : SomeSuperClass // <- points to the constructor in global scope, it should be inside the exports
     });
 
 Solution : (because of the new profiled scope, Zet will return constructor from within exports scope);
 
     Zet.declare('SomeClass' , {
-		superclass : Zet.getClass('SomeSuperClass')
+        superclass : Zet.getClass('SomeSuperClass')
     });
 
 
@@ -61,25 +61,25 @@ Another possibility is to use anonymous class declaration and point the construc
 Before : 
 
     Zet.declare('SomeClass' , {
-    	defineBody : function(that){
-    		Zet.public({
-    			construct : function(name, nickname){
-    				Zet.log('SomeClass.construct');	
-    			}
-    		});
-    	}
+        defineBody : function(that){
+            Zet.public({
+                construct : function(name, nickname){
+                    Zet.log('SomeClass.construct');    
+                }
+            });
+        }
     });
 
 After : 
 
     exports.SomeClass =  Zet.declare( null , {
-    	defineBody : function(that){
-    		Zet.public({
-    			construct : function(name, nickname){
-    				Zet.log('SomeClass.construct');	
-    			}
-    		});
-    	}
+        defineBody : function(that){
+            Zet.public({
+                construct : function(name, nickname){
+                    Zet.log('SomeClass.construct');    
+                }
+            });
+        }
     });
 
 Result for the includer will be the same as in the previous example: 
