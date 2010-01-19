@@ -5,11 +5,18 @@ Yet, it has more than that. Zet.js provides you with unified declaration format,
 # Class declaration examples
 
     Zet.declare('SomeClass' , {
+		superclass : 'someSuperClass',
     	defineBody : function(that){
     		Zet.public({
     			construct : function(name, nickname){
     				Zet.log('SomeClass.construct');	
-    			}
+					that.inherited(arguments);
+    			},
+
+				someMethod : function(){
+					Zet.log('SomeClass.someMethod');
+					that._someFlag = true;
+				}
     		});
     	}
     });
