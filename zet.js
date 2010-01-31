@@ -19,7 +19,20 @@
     // var Zet = require('zet.js');
     //
 
-	var _c = (typeof(exports) != "undefined") ? exports : (globalscope.Zet = {});
+	var _c = (typeof(exports) != "undefined") ? exports : (globalscope.Zet = function zet(){
+        if(arguments.length == 1){
+            var sub = arguments[0];
+            return sub.instanceOf ? sub : {
+                instanceOf : function(superclass){
+                    return (typeof sub == "string") ? 
+                        superclass == String 
+                            : sub instanceof superclass; 
+                }
+            }
+        }else if(arguments.length == 2){
+            return zet.declare(arguments[0], arguments[1]);
+        }
+    });
 
     // cache for undefined
     var undef;
