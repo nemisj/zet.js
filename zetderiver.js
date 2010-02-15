@@ -1,41 +1,60 @@
 (function(){
 var key = {};
-var g = window.Zet = function(fnc){};
 
-g.derive = function(superclass, fnc){
-    var opt = {
-        factory : superclass
-    };
-
-    if(fnc != null){
-        opt.factory    = fnc;
-        opt.superclass = superclass;
-    }
-
-    return derived(opt);
+function buildChain(child, super){
+	for(var i in child){
+		var parentFnc = super[i];
+		if(typeof(parentFnc) == "function"
+			&& i != "inherited"
+			&& i != "$Protected"
+			&& i != "$Public"
+		){
+			//check if this is not the same
+			if(parentFnc !== child[i]){
+				child[i]._superMethod = parentFnc;	
+			}
+		}
+	}
 }
 
-function derived(def){
+var g = window.$Declare = function derived(def){
     return function(k){
-        var instance = this;
+
+		var instance, scope;
+
+		var superScope, superThis;
+		var cacheScope, cacheThis;
 
         if(typeof(def.superclass) != "undefined"){
-            var super      = new (def.superclass)(key);
-            var superScope = super.getProtectedScope();
+            superThis  = new (def.superclass)(key);
+            superScope = super.getProtectedScope && super.getProtectedScope();
         }
+
+		if(superThis){
+			for(var i in superThis){
+				cacheThis[i] = superThis;
+			}
+		}
+
+		if(superScope){
+			for(var i in superScope){
+				cacheScope[i] = superScope;
+			}
+		}
         
-        var scope = (superScope || {
-            Zet   : (Zet || {}),
+        scope = (superScope || {
             that  : null
         });
 
-        scope.Zet.Protected = function(proto){
+		instance = superThis || {};
+
+        scope.$Protected = function(proto){
             for(var i in proto){
                 scope[i] = proto[i];
             }    
         }
 
-        scope.Zet.Public = function(proto){
+        scope.$Public = function(proto){
             for(var i in proto){
                 instance[i] = proto[i];
             }
@@ -49,7 +68,22 @@ function derived(def){
         fact();
 
         scope.that = instance;
-        
+
+		// making inheritance chain for public
+		if(cacheThis){
+			buildChain(instance,cacheThis); 
+		}
+
+		// making inheritance chain for protected
+		if(cacheScope){
+			buildChain(instance,cacheScope); 
+		}
+
+		that.inherited = function(fncName, args){
+			if(arguments.length == 1){
+			}
+		}
+
         if(k === key){
             //dealing with subclasses
             console.debug('inheritance');
@@ -57,7 +91,7 @@ function derived(def){
                 return scope;
             }
         }else if(instance.init){ //normal call
-            instance.init.apply(instance,arguments);
+            instance.init.apply(instance, arguments);
         }
     };
 }
