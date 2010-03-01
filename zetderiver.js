@@ -1,46 +1,69 @@
-(function(){
+;(function(){
 var key = {};
 
-function buildChain(child, super){
-	for(var i in child){
-		var parentFnc = super[i];
-		if(typeof(parentFnc) == "function"
+function buildChain(child, zuper){
+	for(var i in zuper){  // parent has less info than child, so, faster
+		var childFnc = child[i];
+		if(typeof(childFnc) == "function"
 			&& i != "inherited"
 			&& i != "$Protected"
 			&& i != "$Public"
+			&& i != "getProtectedScope"
 		){
 			//check if this is not the same
-			if(parentFnc !== child[i]){
-				child[i]._superMethod = parentFnc;	
+			if(zuper[i] !== childFnc){
+				childFnc._superMethod = zuper[i];	
 			}
 		}
 	}
 }
 
-var g = window.$Declare = function derived(def){
+function cache(obj){
+	var result = {};
+	for(var i in obj){
+		result[i] = obj[i];
+	}
+	return result;
+}
+
+function setter(to){
+	return function(proto){
+		for(var i in proto){
+			to[i] = proto[i];
+		}    
+	}
+}
+
+var undef;
+var g = window.$Declare = function derived(superclass, def){
+	
+	// $Declare(BlaaClass,function(){}
+	// this can be the case when someone passes uninited contructor
+	// helps to prevent such errors
+	
+	var superklazz; 
+
+	if(arguments.length == 1){
+		def = superclass;
+	}else if(arguments.length == 2){
+		superklazz = superclass;
+	}
+
     return function(k){
 
 		var instance, scope;
+		var hasSuper = typeof(superklazz) != "undefined";
 
 		var superScope, superThis;
 		var cacheScope, cacheThis;
 
-        if(typeof(def.superclass) != "undefined"){
-            superThis  = new (def.superclass)(key);
-            superScope = super.getProtectedScope && super.getProtectedScope();
+        if(hasSuper){
+            superThis  = superclass(key);
+            superScope = superThis.getProtectedScope && superThis.getProtectedScope();
+
+			cacheThis  = superThis  && cache(superThis);
+			cacheScope = superScope && cache(superScope);
         }
-
-		if(superThis){
-			for(var i in superThis){
-				cacheThis[i] = superThis;
-			}
-		}
-
-		if(superScope){
-			for(var i in superScope){
-				cacheScope[i] = superScope;
-			}
-		}
         
         scope = (superScope || {
             that  : null
@@ -48,51 +71,61 @@ var g = window.$Declare = function derived(def){
 
 		instance = superThis || {};
 
-        scope.$Protected = function(proto){
-            for(var i in proto){
-                scope[i] = proto[i];
-            }    
-        }
+		scope.$Protected = setter(scope);
+		scope.$Public    = setter(instance);
 
-        scope.$Public = function(proto){
-            for(var i in proto){
-                instance[i] = proto[i];
-            }
-        }
-
-        var fact = def.factory;
+		// building object from factory function
+		var fact = null;
         with(scope){
-            eval("fact = " + fact.toString());
+            eval("fact = " + def.toString());
         }
 
-        fact();
+		//discard use of 'this'
+		fact.call(window); 
 
+		//putting back instance, so that it's become available to private scope
         scope.that = instance;
 
-		// making inheritance chain for public
-		if(cacheThis){
-			buildChain(instance,cacheThis); 
+		if(hasSuper){
+			// making inheritance chain for public
+			cacheThis && buildChain(instance, cacheThis); 
+
+			// making inheritance chain for protected
+			cacheScope && buildChain(scope, cacheScope); 
 		}
 
-		// making inheritance chain for protected
-		if(cacheScope){
-			buildChain(instance,cacheScope); 
-		}
-
-		that.inherited = function(fncName, args){
+		instance.inherited = function(newargs, args){
+			var callee;
 			if(arguments.length == 1){
+				callee = newargs.callee;
+			}else if(arguments.length == 2){
+				callee = args.callee;
+			}
+
+			if(callee){
+				//searching for superCall
+				var method = callee._superMethod;
+				if(method){
+//					console.debug('Found method');
+					method.apply(window,newargs);
+				}else{
+//					console.error('Has no super method');
+				}
+			}else{
+//				console.error('Wrong arguments');
 			}
 		}
 
         if(k === key){
             //dealing with subclasses
-            console.debug('inheritance');
             instance.getProtectedScope = function(){
                 return scope;
             }
         }else if(instance.init){ //normal call
-            instance.init.apply(instance, arguments);
+            instance.init.apply(window, arguments);
         }
+
+		return instance;
     };
 }
 })();
