@@ -4,20 +4,20 @@ var User = $Declare(function(){
     $Protected({
         middleName : '',
         protectedName : function(){
-            alert(name + ' ' + middleName + ' ' + that.lastName);
+			alert(that.lastName + ' ' + name + ' ' + middleName);
         }
     });
 
     $Public({
-        init : function(param1,param2){
+        init : function(param1, param2){
+			alert('User.init:' + param1 + ' ' + param2);
+
             name = param1;
             middleName = param2 || middleName;
         },
-        bla : function(){
-            protectedName();
-        },
+
         showMyName : function(){
-            that.bla();
+			showProtectedName();
         }
     });
  });
@@ -26,15 +26,15 @@ var Programmer = $Declare(User, function(){
 
     $Protected({
         protectedName : function(){
-            alert('Owned');
+			alert('Overriden by Programmer. Exit.');
         }
     });
 
     $Public({
         init : function(){
-            console.debug('Init progger');
-            middleName = 'Borked';
-			that.inherited(arguments);
+            alert('Programmer.init');
+			that.inherited(['Ha','x0r'], arguments);
+			that.lastName = 'Bork';
         }
     })
 });
@@ -44,5 +44,5 @@ var test = User('Maks');
 test.lastName = 'Nemisj';
 test.showMyName();
 
-// var prog = new Programmer();
-// prog.showMyName();
+var prog = Programmer("Yo!");
+prog.showMyName();
